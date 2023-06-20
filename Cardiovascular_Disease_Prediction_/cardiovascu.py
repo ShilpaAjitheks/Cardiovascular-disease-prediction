@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
 import seaborn as sns
+# plt.rcParams['figure.figsize'] = (12, 12)
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -18,6 +19,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier 
+from sklearn.naive_bayes import GaussianNB
+from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -27,8 +31,6 @@ warnings.filterwarnings('ignore')
 # In[2]:
 
 
-import pandas as pd
-import numpy as np
 # Load the data
 data = pd.read_csv("cardio_train.csv", delimiter=';')
 type(data)
@@ -37,7 +39,7 @@ type(data)
 # In[3]:
 
 
-data.head(5)
+data.sample(5)
 
 
 # In[4]:
@@ -46,34 +48,39 @@ data.head(5)
 data.shape
 
 
-# In[5]:
-
-
-data.sample(5)
-
-
 # ## cleaning and understanding our dataset
 
-# In[6]:
+# In[5]:
 
 
 print(data['cholesterol'].unique())
 data['cardio'].nunique()
 
 
-# In[7]:
+# In[6]:
 
 
 data.nunique()
 
 
-# ### unique values are mainly high in age,height,weight,ap_hi,ap_lo
+# ### unique values are mainly high in columns age,height,weight,ap_hi,ap_lo
+
+# In[7]:
+
+
+#lets drop id as it is not relavent
+data.drop("id",axis=1,inplace=True)
+
 
 # In[8]:
 
 
-data.drop("id",axis=1,inplace=True)
+# Convert age from days to years
+data['age'] = (data['age'] / 365).round().astype(int)
+data.head(5)
 
+
+# ### later we will deal with numerical values in height,weight,ap_hi,ap_lo columns
 
 # In[9]:
 
@@ -90,7 +97,7 @@ data.drop_duplicates(inplace=True)
 # In[11]:
 
 
-info = ["age in days","Gender | 1: female, 2: male","Height","Weight","Systolic blood pressure","Diastolic blood pressure","Cholesterol | type-1: normal, 2: above normal, 3: well above normal|","Glucose | type-- 1: normal, 2: above normal, 3: well above normal |","Smoking ","Alcohol intake ","Physical activity","Presence or absence of cardiovascular disease"]
+info = ["age in days","Gender | 1: female, 2: male","Height-(cm)","Weight-(kg)","Systolic blood pressure-(norm:120 hg)","Diastolic blood pressure-(norm:80 hg)","Cholesterol | type-1: normal, 2: above normal, 3: well above normal|","Glucose | type-- 1: normal, 2: above normal, 3: well above normal |","Smoking |type- 0: do 1: dont do","Alcohol intake|type- 0: do 1: dont do ","Physical activity |type- 0: do 1: dont do","Presence or absence of cardiovascular disease"]
 
 
 
@@ -115,175 +122,166 @@ data.isnull().sum()
 # In[14]:
 
 
-data['cholesterol'].value_counts()
+data['age'].nunique()
 
 
 # In[15]:
 
 
-len(data)
+data['cholesterol'].value_counts()
 
 
 # In[16]:
 
 
-# Convert age from days to years
-data['age'] = (data['age'] / 365).round().astype(int)
-data.head(5)
+data['gluc'].value_counts()
 
 
 # In[17]:
 
 
-data['weight'].min()
+data["bmi"] = data["weight"] / (data["height"]/100)**2
 
 
 # In[18]:
 
 
-data['weight'].max()
-
-
-# In[19]:
-
-
-data['height'].min()
-
-
-# In[20]:
-
-
-data['height'].max()
+data.drop(["weight","height"],axis=1,inplace=True)
 
 
 # ### check for outliers
 
-# In[21]:
+# In[19]:
 
 
-import matplotlib.pyplot as plt
 plt.figure(num=None, figsize=(10.4, 6.4), dpi=900, facecolor='w', edgecolor='k')
 data.plot(kind='box')
+plt.axis(xmin=0,xmax=14,ymin=1,ymax=200)
 plt.show();
 
 
-# ### In addition, in some cases diastolic pressure is higher than systolic, which is also incorrect. How many records are inaccurate in terms of blood pressure?
+# ### In  some cases diastolic pressure is higher than systolic, which is  incorrect. How many records are inaccurate in terms of blood pressure?
+
+# In[20]:
+
+
+print("Diastolic pressure is higher than systolic one in {0} cases".format(data[data['ap_lo']> data['ap_hi']].shape[0]))
+
+
+# ### Let's get rid of the outliers, moreover blood pressure could not be negative value!
+
+# In[21]:
+
+
+print('Maximum systolic pressure:',data["ap_hi"].max())
+print('Minimum systolic pressure:', data["ap_hi"].min())
+print('Number of systolic pressure variables:', data["ap_hi"].nunique())
+
 
 # In[22]:
 
 
-print("Diastilic pressure is higher than systolic one in {0} cases".format(data[data['ap_lo']> data['ap_hi']].shape[0]))
+print('Maximum diastolic pressure:',data["ap_lo"].max())
+print('Minimum diastolic pressure:', data["ap_lo"].min())
+print('Number of diastolic pressure variables:', data["ap_lo"].nunique())
 
 
 # In[23]:
 
 
-data[data['ap_lo']> data['ap_hi']].shape[0]
+# data.drop(data[(data['ap_hi'] > data['ap_hi'].quantile(0.975)) | (data['ap_hi'] < data['ap_hi'].quantile(0.025))].index,inplace=True)
+# data.drop(data[(data['ap_lo'] > data['ap_lo'].quantile(0.975)) | (data['ap_lo'] < data['ap_lo'].quantile(0.025))].index,inplace=True)
 
-
-# ### Let's get rid of the outliers, moreover blood pressure could not be negative value!
 
 # In[24]:
 
 
-data.drop(data[(data['ap_hi'] > data['ap_hi'].quantile(0.975)) | (data['ap_hi'] < data['ap_hi'].quantile(0.025))].index,inplace=True)
-data.drop(data[(data['ap_lo'] > data['ap_lo'].quantile(0.975)) | (data['ap_lo'] < data['ap_lo'].quantile(0.025))].index,inplace=True)
+# out_filter = ((data["ap_hi"]>250) | (data["ap_lo"]>200))
+out_filter = ((data["ap_hi"]>175) | (data["ap_lo"]>120))
+data = data[~out_filter]
+len(data)
 
 
 # In[25]:
 
 
-data[data['ap_lo']> data['ap_hi']].shape[0]
+# out_filter2 = ((data["ap_hi"] < 0) | (data["ap_lo"] < 0))
+out_filter2 = ((data["ap_hi"] < 75) | (data["ap_lo"] < 50))
+data = data[~out_filter2]
+len(data)
 
 
 # In[26]:
 
 
-plt.figure(num=None, figsize=(10.4, 6.4), dpi=900, facecolor='w', edgecolor='k')
-data.plot(kind='box')
-plt.show();
+data[data['ap_lo']> data['ap_hi']].shape[0]
 
-
-# ### Let's remove weights and heights, that fall below 2.5% or above 97.5% of a given range.
 
 # In[27]:
 
 
-data.drop(data[(data['height'] > data['height'].quantile(0.975)) | (data['height'] < data['height'].quantile(0.025))].index,inplace=True)
-data.drop(data[(data['weight'] > data['weight'].quantile(0.975)) | (data['weight'] < data['weight'].quantile(0.025))].index,inplace=True)
+#Collapse ap_hi into fewer groups
+ranges = [0, 130, 180, 320]
+group_names = ['Normal', 'Hypertension', 'Hypertensive crisis']
+data['systolic'] = pd.cut(data['ap_hi'], bins=ranges, labels=group_names)
+data['systolic'].unique()
 
 
 # In[28]:
 
 
-(data['height'] > 150).value_counts()
+#Collapse ap_lo into fewer groups
+ranges = [-1, 81, 120, 201]
+group_names = ['Normal', 'Hypertension', 'Hypertensive crisis']
+data['diastolic'] = pd.cut(data['ap_lo'], bins=ranges, labels=group_names)
+data['diastolic'].unique()
 
+
+# ### Let's remove bmi
 
 # In[29]:
 
 
-plt.figure(num=None, figsize=(10.4, 6.4), dpi=900, facecolor='w', edgecolor='k')
-data.plot(kind='box')
-plt.show();
+print('Maximum body mass index:',data["bmi"].max())
+print('Minimum body mass index:', data["bmi"].min())
+print('Number of body mass index:', data["bmi"].nunique())
 
 
 # In[30]:
 
 
-data['height'].max()
+# out_filter2 = ((data["bmi"]>150))
+out_filter2 = ((data["bmi"]>50))
+data = data[~out_filter2]
+len(data)
 
 
 # In[31]:
 
 
-data['height'].min()
+#Collapse bmi into fewer groups
+ranges = [0, 19, 25, 30, 160]
+group_names = ['Underweight', 'Normal', 'Overweight', 'Obesity']
+data['bmi_group'] = pd.cut(data['bmi'], bins=ranges, labels=group_names)
+data['bmi_group'].unique()
 
 
 # In[32]:
 
 
-data['weight'].max()
+# plt.figure(num=None, figsize=(10.4, 6.4), dpi=900, facecolor='w', edgecolor='k')
+data.plot(kind='box')
+# plt.axis(xmin=0,xmax=14,ymin=-1,ymax=5)
+# plt.show();
 
 
 # In[33]:
 
 
-data['weight'].min()
-
-
-# In[34]:
-
-
-len(data)
-
-
-# In[35]:
-
-
-len(data)
-
-
-# In[36]:
-
-
-data['weight'].value_counts()
-
-
-# In[37]:
-
-
-print('Maximum age variable:',data["age"].max())
-print('Minimum age variable:',data["age"].min())
-print(f'Number of age variables:',data["age"].nunique())
-
-
-# In[38]:
-
-
 data.info()
 
 
-# In[39]:
+# In[34]:
 
 
 data.describe()
@@ -291,13 +289,13 @@ data.describe()
 
 # ### Analysing the 'target' variable
 
-# In[40]:
+# In[35]:
 
 
 data["cardio"].describe()
 
 
-# In[41]:
+# In[36]:
 
 
 data["cardio"].unique()
@@ -305,13 +303,13 @@ data["cardio"].unique()
 
 # ##### Clearly, this is a classification problem, with the target variable having values '0' and '1'
 
-# In[42]:
+# In[37]:
 
 
 print(data.corr()["cardio"].abs().sort_values(ascending=False))
 
 
-# In[43]:
+# In[38]:
 
 
 #check for correlation among the numerical columns
@@ -319,7 +317,7 @@ correlation = data.select_dtypes('number').corr()
 correlation
 
 
-# In[44]:
+# In[39]:
 
 
 import seaborn as sns
@@ -327,13 +325,14 @@ import seaborn as sns
 sns.heatmap(correlation, annot=True, vmin=-1, vmax=1, cmap='Purples', linewidth=0.5);
 
 
+# #### here we can see ap_hi and ap_lo are little bit dependent
+# #### gluc and cholesterol are also dependent
+
 # # analysing
 
 # ## EDA
 
-# In[45]:
-
-
+# In[40]:
 
 
 y = data["cardio"]
@@ -343,26 +342,30 @@ target_temp = data.cardio.value_counts()
 print(target_temp)
 
 
-# In[46]:
+# In[41]:
 
 
 sns.barplot(data["gender"],y)
 
 
-# In[47]:
+# ##### avg value of y for each men and women is ploted
+
+# In[42]:
 
 
 sns.countplot(x='cardio',hue='gender',data=data)
 
 
-# In[48]:
+# ##### count of occurance of each category
+
+# In[43]:
 
 
 sns.barplot(data=data,x="cholesterol", y="cardio")
 # plt.show()
 
 
-# In[49]:
+# In[44]:
 
 
 value_counts = data.groupby(["cholesterol", "cardio"]).size()
@@ -370,7 +373,7 @@ value_counts = data.groupby(["cholesterol", "cardio"]).size()
 print(value_counts)
 
 
-# In[50]:
+# In[45]:
 
 
 import seaborn as sns
@@ -392,89 +395,59 @@ plt.legend(title="Cardio", loc="upper right")
 plt.show()
 
 
-# In[51]:
+# In[46]:
 
 
 sns.barplot(data=data,x="gluc", y="cardio")
 # plt.show()
 
 
-# In[52]:
+# In[47]:
 
 
 sns.barplot(data=data,x="smoke", y="cardio")
 # plt.show()
 
 
-# In[53]:
+# In[48]:
 
 
 sns.barplot(data=data,x="alco", y="cardio")
 # plt.show()
 
 
-# In[54]:
+# In[49]:
 
 
 data.groupby('gender')['alco'].sum()
 
 
-# In[55]:
+# In[50]:
 
 
 sns.barplot(data=data,x="active", y="cardio")
 # plt.show()
 
 
-# In[56]:
-
-
-data['height'].plot.hist()#automaticaly count is taken
-
-
-# In[57]:
-
-
-data['weight'].plot.hist()
-
-
-# In[58]:
+# In[51]:
 
 
 data['ap_hi'].plot.hist()
 
 
-# In[59]:
+# In[52]:
 
 
 data['ap_lo'].plot.hist()
 
 
-# In[60]:
+# In[53]:
 
 
-data['BMI'] = data['weight']/((data['height']/100)**2)
+data['bmi'].plot.hist()
 
 
-# In[61]:
-
-
-data.head(5)
-
-
-# In[62]:
-
-
-data.drop(['height','weight'],axis=1,inplace=True)
-
-
-# In[63]:
-
-
-data['BMI'].plot.hist()
-
-
-# In[64]:
+# In[54]:
 
 
 blood_pressure = data.loc[:,['ap_lo','ap_hi']]
@@ -482,36 +455,79 @@ sns.boxplot(x = 'variable',y = 'value',data = blood_pressure.melt())
 print("Diastilic pressure is higher than systolic one in {0} cases".format(data[data['ap_lo']> data['ap_hi']].shape[0]))
 
 
-# In[65]:
+# In[55]:
 
 
 #Visualize the relationships among age, bmi and avg_glucose_level
-columns= ['age', 'BMI', 'gluc']
+columns= ['age', 'bmi', 'cholesterol']
 sns.pairplot(data[columns])
 plt.show()
 
 
-# In[66]:
+# In[56]:
 
 
 print(data.corr()["cardio"].abs().sort_values(ascending=False))
 
 
-# In[67]:
+# In[57]:
 
 
-# # One-hot encode categorical variables
-# data = pd.get_dummies(data, columns=[ 'cholesterol'])
-# data
+columns = ['bmi_group', 'systolic','diastolic', 'cholesterol','gluc','gender']
+
+for column in columns:
+    unique_values = data[column].unique()
+    print(f"Unique values for {column}:{unique_values}")
 
 
-# In[68]:
+# ## Binary Encoding:
+
+# In[58]:
 
 
-data = pd.get_dummies(data, columns=['cholesterol', 'gluc'], drop_first=True)
+labelencoder = LabelEncoder()
+data['gender']=labelencoder.fit_transform(data['gender'])
 
 
-# In[69]:
+# In[59]:
+
+
+data.head()
+
+
+# ## Label Encoding:
+
+# In[60]:
+
+
+#Encode for categorical columns
+cat_cols = ['systolic', 'diastolic', 'bmi_group']
+
+for col in cat_cols:
+    data[col] = labelencoder.fit_transform(data[col])
+
+
+# In[61]:
+
+
+data.sample(5)
+
+
+# ## One-Hot-Encoding:
+
+# In[62]:
+
+
+data = pd.get_dummies(data, columns=['cholesterol', 'gluc','systolic', 'diastolic', 'bmi_group'], drop_first=True)
+
+
+# In[63]:
+
+
+data.sample(5)
+
+
+# In[64]:
 
 
 data.hist();
@@ -519,7 +535,7 @@ data.hist();
 
 # # Train Test split
 
-# In[70]:
+# In[65]:
 
 
 # Split into features and labels
@@ -527,7 +543,7 @@ x = data.drop(['cardio'], axis=1)
 y = data['cardio']
 
 
-# In[71]:
+# In[66]:
 
 
 # Normalize the features
@@ -536,7 +552,7 @@ scaler = StandardScaler()
 x = scaler.fit_transform(x)
 
 
-# In[72]:
+# In[67]:
 
 
 from sklearn.model_selection import train_test_split,GridSearchCV
@@ -544,7 +560,7 @@ from sklearn.model_selection import train_test_split,GridSearchCV
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.25, random_state=42)
 
 
-# In[73]:
+# In[68]:
 
 
 
@@ -552,7 +568,7 @@ x_test.shape
 x_train.shape
 
 
-# In[74]:
+# In[69]:
 
 
 y_train.shape
@@ -561,7 +577,7 @@ y_test.shape
 
 # # logistic regression
 
-# In[75]:
+# In[70]:
 
 
 log_reg = LogisticRegression(class_weight='balanced')
@@ -571,7 +587,7 @@ param_grid={
     'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga']
 }
 
-#perform grid search with cross-validation to obtain the best hyperparameters
+# perform grid search with cross-validation to obtain the best hyperparameters
 grid_search = GridSearchCV(log_reg, param_grid, cv=5)
 grid_search.fit(x_train, y_train)
 
@@ -579,7 +595,7 @@ grid_search.fit(x_train, y_train)
 print(grid_search.best_params_)
 
 
-# In[76]:
+# In[71]:
 
 
 #instantiate, fit, and predict with the logistic regression
@@ -589,7 +605,7 @@ y_pred_lr = log_reg.predict(x_test)
 y_pred_lr
 
 
-# In[79]:
+# In[72]:
 
 
 #check for the accuracy score of the log_reg
@@ -597,13 +613,13 @@ score_log_reg = round(accuracy_score(y_test, y_pred_lr)*100,2)
 score_log_reg
 
 
-# In[80]:
+# In[73]:
 
 
 print("The accuracy score achieved using Logistic regression is: "+str(score_log_reg)+" %")
 
 
-# In[81]:
+# In[74]:
 
 
 #evaluate and print the train set accuracy
@@ -611,7 +627,7 @@ log_reg_train_accuracy = log_reg.score(x_train, y_train)
 log_reg_train_accuracy
 
 
-# In[82]:
+# In[75]:
 
 
 #evaluate and print the test set accuracy
@@ -621,7 +637,7 @@ log_reg_test_accuracy
 
 # # SVM
 
-# In[83]:
+# In[76]:
 
 
 from sklearn import svm
@@ -634,13 +650,13 @@ sv.fit(x_train, y_train)
 y_pred_svm = sv.predict(x_test)
 
 
-# In[84]:
+# In[77]:
 
 
 y_pred_svm.shape
 
 
-# In[85]:
+# In[78]:
 
 
 score_svm = round(accuracy_score(y_pred_svm,y_test)*100,2)
@@ -648,9 +664,25 @@ score_svm = round(accuracy_score(y_pred_svm,y_test)*100,2)
 print("The accuracy score achieved using Linear SVM is: "+str(score_svm)+" %")
 
 
+# In[79]:
+
+
+#evaluate and print the train set accuracy
+svm_train_accuracy = sv.score(x_train, y_train)
+svm_train_accuracy
+
+
+# In[80]:
+
+
+#evaluate and print the test set accuracy
+svm_test_accuracy = sv.score(x_test, y_test)
+svm_test_accuracy
+
+
 # # K Nearest Neighbors
 
-# In[86]:
+# In[81]:
 
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -660,13 +692,13 @@ knn.fit(x_train,y_train)
 y_pred_knn=knn.predict(x_test)
 
 
-# In[87]:
+# In[82]:
 
 
 y_pred_knn.shape
 
 
-# In[88]:
+# In[83]:
 
 
 score_knn = round(accuracy_score(y_pred_knn,y_test)*100,2)
@@ -674,9 +706,25 @@ score_knn = round(accuracy_score(y_pred_knn,y_test)*100,2)
 print("The accuracy score achieved using KNN is: "+str(score_knn)+" %")
 
 
+# In[84]:
+
+
+#evaluate and print the train set accuracy
+knn_train_accuracy = knn.score(x_train, y_train)
+knn_train_accuracy
+
+
+# In[85]:
+
+
+#evaluate and print the test set accuracy
+knn_test_accuracy = knn.score(x_test, y_test)
+knn_test_accuracy
+
+
 # # Naive Bayes
 
-# In[89]:
+# In[86]:
 
 
 from sklearn.naive_bayes import GaussianNB
@@ -688,13 +736,13 @@ nb.fit(x_train,y_train)
 y_pred_nb = nb.predict(x_test)
 
 
-# In[90]:
+# In[87]:
 
 
 y_pred_nb.shape
 
 
-# In[91]:
+# In[88]:
 
 
 score_nb = round(accuracy_score(y_pred_nb,y_test)*100,2)
@@ -702,11 +750,27 @@ score_nb = round(accuracy_score(y_pred_nb,y_test)*100,2)
 print("The accuracy score achieved using Naive Bayes is: "+str(score_nb)+" %")
 
 
+# In[89]:
+
+
+#evaluate and print the train set accuracy
+nb_train_accuracy = nb.score(x_train, y_train)
+nb_train_accuracy
+
+
+# In[90]:
+
+
+#evaluate and print the test set accuracy
+nb_test_accuracy = nb.score(x_test, y_test)
+nb_test_accuracy
+
+
 # # Decision Tree
 
 # ### Let's perform hyperparameter tuning for our Decision Tree model:
 
-# In[92]:
+# In[91]:
 
 
 dt = DecisionTreeClassifier(class_weight='balanced')
@@ -725,16 +789,16 @@ grid_search.fit(x_train, y_train)
 print(grid_search.best_params_)
 
 
-# In[93]:
+# In[92]:
 
 
 #instantiate, fit, and predict with DecisionTreeClassifier
-dt = DecisionTreeClassifier(max_depth=5, min_samples_leaf=4, min_samples_split=2, random_state=0)
+dt = DecisionTreeClassifier(max_depth=3, min_samples_leaf=4, min_samples_split=2, random_state=0)
 dt.fit(x_train, y_train)
 y_pred_dt = dt.predict(x_test)
 
 
-# In[94]:
+# In[93]:
 
 
 #check for the accuracy score of the dt
@@ -742,13 +806,13 @@ score_dt = round(accuracy_score(y_test, y_pred_dt)*100,2)
 score_dt
 
 
-# In[95]:
+# In[94]:
 
 
 print("The accuracy score achieved using Decision tree is: "+str(score_dt)+" %")
 
 
-# In[96]:
+# In[95]:
 
 
 #evaluate and print the train set accuracy
@@ -756,7 +820,7 @@ dt_train_accuracy = dt.score(x_train, y_train)
 dt_train_accuracy
 
 
-# In[97]:
+# In[96]:
 
 
 #evaluate and print the test set accuracy
@@ -766,7 +830,7 @@ dt_test_accuracy
 
 # # Random Forest
 
-# In[98]:
+# In[97]:
 
 
 rfc = RandomForestClassifier(class_weight='balanced')
@@ -785,16 +849,16 @@ grid_search.fit(x_train, y_train)
 print(grid_search.best_params_)
 
 
-# In[99]:
+# In[98]:
 
 
 #instantiate, fit, and predict with Random Forest Classifier
-rfc = RandomForestClassifier(max_depth=10, max_features='sqrt', n_estimators=200, random_state=0, class_weight='balanced')
+rfc = RandomForestClassifier(max_depth=10, max_features='sqrt', n_estimators=200, random_state=42, class_weight='balanced')
 rfc.fit(x_train, y_train)
 y_pred_rfc = rfc.predict(x_test)
 
 
-# In[100]:
+# In[99]:
 
 
 #check for the accuracy score of the dt
@@ -802,13 +866,13 @@ score_rfc = round(accuracy_score(y_test, y_pred_rfc)*100,2)
 score_rfc
 
 
-# In[101]:
+# In[100]:
 
 
 print("The accuracy score achieved using RandomForest is: "+str(score_rfc)+" %")
 
 
-# In[102]:
+# In[101]:
 
 
 #evaluate and print the train set accuracy
@@ -816,7 +880,7 @@ rfc_train_accuracy = rfc.score(x_train, y_train)
 rfc_train_accuracy
 
 
-# In[103]:
+# In[102]:
 
 
 #evaluate and print the test set accuracy
@@ -826,7 +890,7 @@ rfc_test_accuracy
 
 # ## Now, let's compare the accuracy of the three models we've deployed:
 
-# In[116]:
+# In[103]:
 
 
 scores = [score_log_reg,score_nb,score_svm,score_knn,score_dt,score_rfc]
@@ -836,7 +900,7 @@ for i in range(len(algorithms)):
     print("The accuracy score achieved using "+algorithms[i]+" is: "+str(scores[i])+" %")
 
 
-# In[117]:
+# In[104]:
 
 
 sns.set(rc={'figure.figsize':(15,8)})
@@ -846,4 +910,22 @@ plt.ylabel("Accuracy score")
 sns.barplot(algorithms,scores)
 
 
-# ### Hey there random forest has good result as compare to other algorithms <br> <br>
+# In[105]:
+
+
+models = pd.DataFrame({
+    'Algorithms' : ["Logistic Regression","Naive Bayes","Support Vector Machine","K-Nearest Neighbors","Decision Tree","Random Forest"]    ,
+    'Score_train': [log_reg_train_accuracy,nb_train_accuracy,svm_train_accuracy,knn_train_accuracy,dt_train_accuracy,rfc_train_accuracy],
+    'Score_test': [log_reg_test_accuracy,nb_test_accuracy,svm_test_accuracy,knn_test_accuracy,dt_test_accuracy,rfc_test_accuracy],
+                    })
+
+
+# In[106]:
+
+
+models.sort_values(by=['Score_train', 'Score_test'], ascending=False)
+
+
+# ### Hey there random forest has good result as compare to other algorithms
+
+# ### Model should have better test_score than train score,then only it is considered as good  <br> <br>
