@@ -1,0 +1,29 @@
+digraph Tree {
+node [shape=box, style="filled", color="black", fontname="helvetica"] ;
+edge [fontname="helvetica"] ;
+0 [label="ap_hi <= 0.837\ngini = 0.5\nsamples = 3300\nvalue = [1655, 1645]\nclass = non-cardio", fillcolor="#fffefe"] ;
+1 [label="cholesterol_3 <= 1.2\ngini = 0.469\nsamples = 2435\nvalue = [1521, 914]\nclass = non-cardio", fillcolor="#f5cdb0"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="age <= 0.182\ngini = 0.449\nsamples = 2208\nvalue = [1456, 752]\nclass = non-cardio", fillcolor="#f2c29f"] ;
+1 -> 2 ;
+3 [label="gini = 0.387\nsamples = 1314\nvalue = [969, 345]\nclass = non-cardio", fillcolor="#eeae7f"] ;
+2 -> 3 ;
+4 [label="gini = 0.496\nsamples = 894\nvalue = [487, 407]\nclass = non-cardio", fillcolor="#fbeade"] ;
+2 -> 4 ;
+5 [label="ap_hi <= -0.345\ngini = 0.409\nsamples = 227\nvalue = [65, 162]\nclass = cardio", fillcolor="#88c4ef"] ;
+1 -> 5 ;
+6 [label="gini = 0.447\nsamples = 151\nvalue = [51, 100]\nclass = cardio", fillcolor="#9ecff2"] ;
+5 -> 6 ;
+7 [label="gini = 0.301\nsamples = 76\nvalue = [14, 62]\nclass = cardio", fillcolor="#66b3eb"] ;
+5 -> 7 ;
+8 [label="ap_lo <= -2.258\ngini = 0.262\nsamples = 865\nvalue = [134, 731]\nclass = cardio", fillcolor="#5dafea"] ;
+0 -> 8 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+9 [label="gini = 0.48\nsamples = 5\nvalue = [3, 2]\nclass = non-cardio", fillcolor="#f6d5bd"] ;
+8 -> 9 ;
+10 [label="ap_hi <= 1.165\ngini = 0.258\nsamples = 860\nvalue = [131, 729]\nclass = cardio", fillcolor="#5dafea"] ;
+8 -> 10 ;
+11 [label="gini = 0.295\nsamples = 468\nvalue = [84, 384]\nclass = cardio", fillcolor="#64b2eb"] ;
+10 -> 11 ;
+12 [label="gini = 0.211\nsamples = 392\nvalue = [47, 345]\nclass = cardio", fillcolor="#54aae9"] ;
+10 -> 12 ;
+}
