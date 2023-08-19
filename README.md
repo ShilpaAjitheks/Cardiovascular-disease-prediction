@@ -3,7 +3,7 @@
 ![](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/002/508/249/datas/gallery.jpg)
 
 <h3>CONTEXT:</h3>
-Cardiovascular disease (CVD) is a general term that describes a disease of the heart or blood vessels. Blood flow to the heart, brain or body can be reduced because of a: blood clot build-up of fatty deposits inside an artery, leading to the artery hardening and narrowing .Cardiovascular diseases (CVDs) are the leading cause of death worldwide, accounting for approximately 31% of all deaths globally. Early diagnosis and prevention of CVDs are crucial.
+Cardiovascular disease (CVD) is a general term used to describe heart or blood vessel diseases. Blood flow to the heart, brain or body can be reduced because of a blood clot build-up of fatty deposits inside an artery, leading to the artery hardening and narrowing .Cardiovascular diseases (CVDs) are the leading cause of death worldwide, accounting for approximately 31% of all deaths globally. Early diagnosis and prevention of CVDs are crucial.
 
 <h3>AIM:</h3>
 Objective of this project is to develop a machine learning model that can predict the risk of Cardiovascular diseases (CVDs) in individuals based on their health data.
