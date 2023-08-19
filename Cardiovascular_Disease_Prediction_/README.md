@@ -36,7 +36,7 @@ The dataset used for this project is the “Cardiovascular Disease dataset” fr
 
 <h2>Guideline to Access Project</h2>
 
-Cardiovascular_Disease_Prediction_ folder inside this Repository(Cardiovascular-disease-prediction) contains cardiovascu.ipynb notebook.You people can simply access the notebook and use.
+Cardiovascular_Disease_Prediction_ folder inside Cardiovascular-disease-prediction Repository contains cardiovascu.ipynb notebook.You people can simply access the notebook and use.
 Python(.py) file of the same also is provided.
 cardio_train.csv is our dataset in csv format.
 
