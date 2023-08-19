@@ -32,3 +32,11 @@ The dataset used for this project is the “Cardiovascular Disease dataset” fr
 10. alco       :			Alcohol intake|type- 0: do 1: dont do 
 11. active     :			Physical activity |type- 0: do 1: dont do
 12. cardio     :			Presence or absence of cardiovascular disease
+
+
+<h2>Guideline to Access Project</h2>
+
+Cardiovascular_Disease_Prediction_ folder inside this Repository(Machine_Learning_Pro) contains cardiovascu.ipynb notebook.You people can simply access the notebook and use.
+Python(.py) file of the same also is provided.
+cardio_train.csv is our dataset in csv format.
+
